@@ -17,8 +17,8 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 model.eval()
 
 # 创建示例输入
-input_text = "测试模型的输入"
-inputs = tokenizer(input_text, return_tensors="pt", padding=True, truncation=True, max_length=1024)
+dummy_input_text = "This is a sample text for embedding calculation."
+inputs = tokenizer(dummy_input_text, return_tensors="pt", padding=True, truncation=True, max_length=128)
 
 # 确保输入在 GPU/CPU 上与模型相同
 input_ids = inputs['input_ids']
@@ -29,18 +29,15 @@ onnx_filename = "bge_m3_model.onnx"
 
 torch.onnx.export(
         model,
-        (input_ids, attention_mask),  # 模型输入
+        (inputs['input_ids'], inputs['attention_mask']),
         onnx_filename,                 # 输出 ONNX 文件名
         export_params=True,
-        opset_version=12,             # 使用较新的 ONNX opset 版本
+        opset_version=17,
         do_constant_folding=True,
         input_names=['input_ids', 'attention_mask'],  # 输入名
-        output_names=['output'],                     # 输出名
-        dynamic_axes={
-            'input_ids': {0: 32},  # 0 是 batch_size 的轴索引
-            'attention_mask': {0: 32},  # 0 是 batch_size 的轴索引
-            'output': {0: 32}  # 假设输出的 batch_size 也是动态的
-        }
+        output_names=['output'],                     # 输出名i
+        #dynamic_axes={'input_ids': {0: 'batch_size'}, 'attention_mask': {0: 'batch_size'}}
+        dynamic_axes=None
 )
 
 print(f"Model exported to {onnx_filename}")
